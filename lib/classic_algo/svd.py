@@ -45,24 +45,24 @@ class SVD(object):
 
         start = time.time()
         for epoch in range(self.epoch_num):
-            train_mse_loss = 0.0
+            train_rmse_loss = 0.0
             for u in range(self.n_users):
                 for i in range(self.n_items):
                     if train_data[u, i] != 0:
                         e_ui = train_data[u, i] - np.dot(q_mat.T, p_mat)
-                        train_mse_loss += e_ui**2
+                        train_rmse_loss += e_ui**2
                         p_mat[u, :] += self.gamma * (e_ui * q_mat[i, :] - self.lamb * p_mat[u, :])
                         q_mat[i, :] += self.gamma * (e_ui * p_mat[u, :] - self.lamb * q_mat[i, :])
             end = time.time()
-            train_mse_loss = np.sqrt(train_mse_loss / train_sample_num)
+            train_rmse_loss = np.sqrt(train_rmse_loss / train_sample_num)
 
             if eval_data.any():
                 valid_mse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat)
                 print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}%"
-                              .format(epoch, end - start, train_mse_loss, valid_mse_loss, accuracy * 100))
+                              .format(epoch, end - start, train_rmse_loss, valid_mse_loss, accuracy * 100))
             else:
                 print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}"
-                              .format(epoch, end - start, train_mse_loss))
+                              .format(epoch, end - start, train_rmse_loss))
 
     def trainSGDWithBias(self, train_data, eval_data=None):
         """
@@ -92,27 +92,27 @@ class SVD(object):
 
         start = time.time()
         for epoch in range(self.epoch_num):
-            train_mse_loss = 0.0
+            train_rmse_loss = 0.0
             for u in range(self.n_users):
                 for i in range(self.n_items):
                     if train_data[u, i] != 0:
                         b_ui = b_u[u] + b_i[i] + mu
                         e_ui = train_data[u, i] - np.dot(q_mat.T, p_mat) - b_ui
-                        train_mse_loss += e_ui**2
+                        train_rmse_loss += e_ui**2
                         p_mat[u, :] += self.gamma * (e_ui * q_mat[i, :] - self.lamb * p_mat[u, :])
                         q_mat[i, :] += self.gamma * (e_ui * p_mat[u, :] - self.lamb * q_mat[i, :])
                         b_u[u] += self.gamma * (e_ui - self.lamb * b_u[u])
                         b_i[i] += self.gamma * (e_ui - self.lamb * b_i[i])
             end = time.time()
-            train_mse_loss = np.sqrt(train_mse_loss / train_sample_num)
+            train_rmse_loss = np.sqrt(train_rmse_loss / train_sample_num)
 
             if eval_data.any():
                 valid_mse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat, b_u, b_i, mu)
                 print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}%"
-                              .format(epoch, end - start, train_mse_loss, valid_mse_loss, accuracy * 100))
+                              .format(epoch, end - start, train_rmse_loss, valid_mse_loss, accuracy * 100))
             else:
                 print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}"
-                              .format(epoch, end - start, train_mse_loss))
+                              .format(epoch, end - start, train_rmse_loss))
 
     def evaluate(self, train_data, eval_data, p_mat, q_mat, b_u=None, b_i=None, mu=None):
         """
