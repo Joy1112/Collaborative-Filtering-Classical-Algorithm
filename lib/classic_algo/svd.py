@@ -44,12 +44,12 @@ class SVD(object):
             train_mse_loss = np.sqrt(train_mse_loss / train_sample_num)
 
             if eval_data.any():
-                pred, valid_mse_loss = self.evaluate(eval_data)
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}".format(
-                              epoch, end - start, train_mse_loss, valid_mse_loss))
+                valid_mse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat)
+                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}"
+                              .format(epoch, end - start, train_mse_loss, valid_mse_loss, accuracy))
             else:
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}".format(
-                              epoch, end - start, train_mse_loss))
+                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}"
+                              .format(epoch, end - start, train_mse_loss))
 
     def trainSGDWithBias(self, train_data, eval_data=None):
         # mean of all the non-zero elements
@@ -81,16 +81,28 @@ class SVD(object):
             train_mse_loss = np.sqrt(train_mse_loss / train_sample_num)
 
             if eval_data.any():
-                pred, valid_mse_loss = self.evaluate(eval_data)
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}".format(
-                              epoch, end - start, train_mse_loss, valid_mse_loss))
+                valid_mse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat, b_u, b_i, mu)
+                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}"
+                              .format(epoch, end - start, train_mse_loss, valid_mse_loss, accuracy))
             else:
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}".format(
-                              epoch, end - start, train_mse_loss))
+                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}"
+                              .format(epoch, end - start, train_mse_loss))
 
-    def evaluate(self, trian_data, eval_data, p_mat, q_mat):
-        loss = 0.0
-        pred = []
+    def evaluate(self, train_data, eval_data, p_mat, q_mat, b_u=None, b_i=None, mu=None):
+        eval_samples = eval_data[np.nonzero(eval_data)]
+
+        # predict
+        if (b_u is None) or (b_i is None) or (mu is None):
+            pred = self.predict(train_data, p_mat, q_mat)
+        else:
+            pred = self.predictWithBias(train_data, p_mat, q_mat, b_u, b_i, mu)
+        pred_samples = pred[np.nonzero(eval_data)]
+
+        # compute the mse loss
+        valid_mse_loss = np.mean((eval_samples - pred_samples)**2)
+        accuracy = np.sum(eval_samples == pred_samples) / eval_samples.shape[0]
+
+        return valid_mse_loss, accuracy
 
     def predict(self, train_data, p_mat, q_mat):
         # obtain the prediction
