@@ -23,6 +23,19 @@ class SVD(object):
         self.n_items = cfg.N_items
 
     def trainSGD(self, train_data, eval_data=None):
+        """
+        Training the model with SGD.
+        rating_matrix = user_matrix * (item_matrix)^{T}
+        args:
+            train_data:
+                the training data matrix, only sparse data.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+            eval_data:
+                the evaluation data matrix.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+        """
         # number of train samples
         train_sample_num = train_data[np.nonzero(train_data)].shape[0]
 
@@ -45,13 +58,26 @@ class SVD(object):
 
             if eval_data.any():
                 valid_mse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat)
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}"
-                              .format(epoch, end - start, train_mse_loss, valid_mse_loss, accuracy))
+                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}%"
+                              .format(epoch, end - start, train_mse_loss, valid_mse_loss, accuracy * 100))
             else:
                 print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}"
                               .format(epoch, end - start, train_mse_loss))
 
     def trainSGDWithBias(self, train_data, eval_data=None):
+        """
+        Training the model with SGD, the model has the bias.
+        rating_matrix = user_matrix * (item_matrix)^{T} + b, where b_ui = \mu + b_{i} + b_{u}
+        args:
+            train_data:
+                the training data matrix, only sparse data.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+            eval_data:
+                the evaluation data matrix.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+        """
         # mean of all the non-zero elements
         mu = np.mean(train_data[np.nonzero(train_data)])
         # number of train samples
@@ -82,13 +108,51 @@ class SVD(object):
 
             if eval_data.any():
                 valid_mse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat, b_u, b_i, mu)
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}"
-                              .format(epoch, end - start, train_mse_loss, valid_mse_loss, accuracy))
+                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}%"
+                              .format(epoch, end - start, train_mse_loss, valid_mse_loss, accuracy * 100))
             else:
                 print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}"
                               .format(epoch, end - start, train_mse_loss))
 
     def evaluate(self, train_data, eval_data, p_mat, q_mat, b_u=None, b_i=None, mu=None):
+        """
+        Evaluate the model with the given evaluation data. Here the training data is used to correct the prediction.
+        args:
+            train_data:
+                the training data matrix, only sparse data.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+            eval_data:
+                the evaluation data matrix.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+            p_mat:
+                the user matrix.
+                shape: [n_users, n_features]
+                type: np.ndarray(np.float32)
+            q_mat:
+                the item matrix.
+                shape: [n_items, n_features]
+                type: np.ndarray(np.float32)
+            b_u:
+                the bias of users.
+                shape: [n_users, ]
+                type: np.ndarray(np.float32)
+            b_i:
+                the bias of items.
+                shape: [n_items, ]
+                type: np.ndarray(np.float32)
+            mu:
+                the mean of the training data.
+                type: np.float64
+        returns:
+            valid_mse_loss:
+                the MSE loss of the model on the evaluation data.
+                type:np.float64
+            accuracy:
+                the accuracy of the model on the evaluation data.
+                type: np.float64
+        """
         eval_samples = eval_data[np.nonzero(eval_data)]
 
         # predict
@@ -105,6 +169,27 @@ class SVD(object):
         return valid_mse_loss, accuracy
 
     def predict(self, train_data, p_mat, q_mat):
+        """
+        Predict the whole rating matrix. Here the training data is used to correct the prediction.
+        args:
+            train_data:
+                the training data matrix, only sparse data.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+            p_mat:
+                the user matrix.
+                shape: [n_users, n_features]
+                type: np.ndarray(np.float32)
+            q_mat:
+                the item matrix.
+                shape: [n_items, n_features]
+                type: np.ndarray(np.float32)
+        returns:
+            pred:
+                the prediction of the whole rating matrix.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+        """
         # obtain the prediction
         pred = np.dot(p_mat, q_mat.T)
 
@@ -118,6 +203,38 @@ class SVD(object):
         return pred
 
     def predictWithBias(self, train_data, p_mat, q_mat, b_u, b_i, mu):
+        """
+        Predict the whole rating matrix with the bias model. Here the training data is used to correct the prediction.
+        args:
+            train_data:
+                the training data matrix, only sparse data.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+            p_mat:
+                the user matrix.
+                shape: [n_users, n_features]
+                type: np.ndarray(np.float32)
+            q_mat:
+                the item matrix.
+                shape: [n_items, n_features]
+                type: np.ndarray(np.float32)
+            b_u:
+                the bias of users.
+                shape: [n_users, ]
+                type: np.ndarray(np.float32)
+            b_i:
+                the bias of items.
+                shape: [n_items, ]
+                type: np.ndarray(np.float32)
+            mu:
+                the mean of the training data.
+                type: np.float64
+        returns:
+            pred:
+                the prediction of the whole rating matrix.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+        """
         # obtain the prediction
         pred = np.dot(p_mat, q_mat.T)
         for u in range(self.n_users):
