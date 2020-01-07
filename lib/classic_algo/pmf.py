@@ -91,14 +91,14 @@ def RMSE(U,V,test):
 
 
 def Figure(loss,rmse):
-    fig1=plt.figure('LOSS')
+    fig1 = plt.figure('LOSS')
     x = range(len(loss))
     plot(x, loss, color='g',linewidth=3)
     plt.title('PMF')
     plt.xlabel('Iterations')
     plt.ylabel('Loss')
 
-    fig2=plt.figure('RMSE')
+    fig2 = plt.figure('RMSE')
     x = range(len(rmse))
     plot(x, rmse, color='r',linewidth=3)
     plt.title('PMF')
