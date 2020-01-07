@@ -12,11 +12,12 @@ class SVD(object):
     Reference:
         Koren, Y., Bell, R., & Volinsky, C. (2009). Matrix factorization techniques for recommender systems. Computer, (8), 30-37.
     """
-    def __init__(self, feature_num, gamma, lamb, epoch_num, save_model=False):
+    def __init__(self, feature_num, gamma, lamb, epoch_num, loss_threshold=None, save_model=False):
         self.feature_num = feature_num
         self.gamma = gamma
         self.lamb = lamb
         self.epoch_num = epoch_num
+        self.loss_threshold = loss_threshold
         self.save_model = save_model
 
         self.n_users = cfg.N_users
@@ -57,12 +58,17 @@ class SVD(object):
             train_rmse_loss = np.sqrt(train_rmse_loss / train_sample_num)
 
             if eval_data.any():
-                valid_mse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat)
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}%"
-                              .format(epoch, end - start, train_rmse_loss, valid_mse_loss, accuracy * 100))
+                valid_rmse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat)
+                print_and_log("Epoch {d}: totally training time {:.4f}, training RMSE: {:.4f}, validation RMSE: {:.4f}, accuracy: {:.4f}%"
+                              .format(epoch, end - start, train_rmse_loss, valid_rmse_loss, accuracy * 100))
             else:
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}"
+                print_and_log("Epoch {d}: totally training time {:.4f}, training RMSE: {:.4f}"
                               .format(epoch, end - start, train_rmse_loss))
+
+            # when the train_rmse_loss is less than the threshold, end the training process.
+            if self.loss_threshold is not None:
+                if train_rmse_loss < self.loss_threshold:
+                    break
 
     def trainSGDWithBias(self, train_data, eval_data=None):
         """
@@ -107,12 +113,17 @@ class SVD(object):
             train_rmse_loss = np.sqrt(train_rmse_loss / train_sample_num)
 
             if eval_data.any():
-                valid_mse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat, b_u, b_i, mu)
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}, validation MSE: {:.4f}, accuracy: {:.4f}%"
-                              .format(epoch, end - start, train_rmse_loss, valid_mse_loss, accuracy * 100))
+                valid_rmse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat, b_u, b_i, mu)
+                print_and_log("Epoch {d}: totally training time {:.4f}, training RMSE: {:.4f}, validation RMSE: {:.4f}, accuracy: {:.4f}%"
+                              .format(epoch, end - start, train_rmse_loss, valid_rmse_loss, accuracy * 100))
             else:
-                print_and_log("Epoch {d}: totally training time {:.4f}, training MSE: {:.4f}"
+                print_and_log("Epoch {d}: totally training time {:.4f}, training RMSE: {:.4f}"
                               .format(epoch, end - start, train_rmse_loss))
+
+            # when the train_rmse_loss is less than the threshold, end the training process.
+            if self.loss_threshold is not None:
+                if train_rmse_loss < self.loss_threshold:
+                    break
 
     def evaluate(self, train_data, eval_data, p_mat, q_mat, b_u=None, b_i=None, mu=None):
         """
@@ -146,8 +157,8 @@ class SVD(object):
                 the mean of the training data.
                 type: np.float64
         returns:
-            valid_mse_loss:
-                the MSE loss of the model on the evaluation data.
+            valid_rmse_loss:
+                the RMSE loss of the model on the evaluation data.
                 type:np.float64
             accuracy:
                 the accuracy of the model on the evaluation data.
@@ -163,10 +174,10 @@ class SVD(object):
         pred_samples = pred[np.nonzero(eval_data)]
 
         # compute the mse loss
-        valid_mse_loss = np.mean((eval_samples - pred_samples)**2)
+        valid_rmse_loss = np.sqrt(np.mean((eval_samples - pred_samples)**2))
         accuracy = np.sum(eval_samples == pred_samples) / eval_samples.shape[0]
 
-        return valid_mse_loss, accuracy
+        return valid_rmse_loss, accuracy
 
     def predict(self, train_data, p_mat, q_mat):
         """
