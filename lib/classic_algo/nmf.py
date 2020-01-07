@@ -53,7 +53,7 @@ class WNMF(object):
             train_rmse_loss = np.sqrt(np.mean((pred_samples - train_samples)**2))
 
             # when the train_rmse_loss is less than the threshold, end the training process.
-            if self.loss_threshold:
+            if self.loss_threshold is not None:
                 if train_rmse_loss < self.loss_threshold:
                     break
 
