@@ -43,6 +43,8 @@ class SVD(object):
         # p, q correspond to user_matrix and item_matrix
         p_mat = np.random.random_sample([self.n_users, self.feature_num])
         q_mat = np.random.random_sample([self.n_items, self.feature_num])
+        p_mat_new = p_mat
+        q_mat_new = q_mat
 
         start = time.time()
         for epoch in range(self.epoch_num):
@@ -52,8 +54,10 @@ class SVD(object):
                     if train_data[u, i] != 0:
                         e_ui = train_data[u, i] - np.dot(q_mat.T, p_mat)
                         train_rmse_loss += e_ui**2
-                        p_mat[u, :] += self.gamma * (e_ui * q_mat[i, :] - self.lamb * p_mat[u, :])
-                        q_mat[i, :] += self.gamma * (e_ui * p_mat[u, :] - self.lamb * q_mat[i, :])
+                        p_mat_new[u, :] += self.gamma * (e_ui * q_mat[i, :] - self.lamb * p_mat[u, :])
+                        q_mat_new[i, :] += self.gamma * (e_ui * p_mat[u, :] - self.lamb * q_mat[i, :])
+                        p_mat[u, :] = p_mat_new[u, :]
+                        q_mat[i, :] = q_mat_new[i, :]
             end = time.time()
             train_rmse_loss = np.sqrt(train_rmse_loss / train_sample_num)
 
@@ -92,6 +96,8 @@ class SVD(object):
         # p, q correspond to user_matrix and item_matrix
         p_mat = np.random.random_sample([self.n_users, self.feature_num])
         q_mat = np.random.random_sample([self.n_items, self.feature_num])
+        p_mat_new = p_mat
+        q_mat_new = q_mat
 
         b_u = np.ones([self.n_users])
         b_i = np.ones([self.n_items])
@@ -105,8 +111,10 @@ class SVD(object):
                         b_ui = b_u[u] + b_i[i] + mu
                         e_ui = train_data[u, i] - np.dot(q_mat.T, p_mat) - b_ui
                         train_rmse_loss += e_ui**2
-                        p_mat[u, :] += self.gamma * (e_ui * q_mat[i, :] - self.lamb * p_mat[u, :])
-                        q_mat[i, :] += self.gamma * (e_ui * p_mat[u, :] - self.lamb * q_mat[i, :])
+                        p_mat_new[u, :] += self.gamma * (e_ui * q_mat[i, :] - self.lamb * p_mat[u, :])
+                        q_mat_new[i, :] += self.gamma * (e_ui * p_mat[u, :] - self.lamb * q_mat[i, :])
+                        p_mat[u, :] = p_mat_new[u, :]
+                        q_mat[i, :] = q_mat_new[i, :]
                         b_u[u] += self.gamma * (e_ui - self.lamb * b_u[u])
                         b_i[i] += self.gamma * (e_ui - self.lamb * b_i[i])
             end = time.time()
