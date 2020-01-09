@@ -1,5 +1,6 @@
 import math
 import time
+import copy
 import pickle
 import numpy as np
 from cfg.config import config as cfg
@@ -12,12 +13,13 @@ class SVD(object):
     Reference:
         Koren, Y., Bell, R., & Volinsky, C. (2009). Matrix factorization techniques for recommender systems. Computer, (8), 30-37.
     """
-    def __init__(self, feature_num, gamma, lamb, epoch_num, loss_threshold=None, save_model=False):
+    def __init__(self, feature_num, gamma, lamb, epoch_num, logger, loss_threshold=None, save_model=False):
         self.feature_num = feature_num
         self.gamma = gamma
         self.lamb = lamb
         self.epoch_num = epoch_num
         self.loss_threshold = loss_threshold
+        self.logger = logger
         self.save_model = save_model
 
         self.n_users = cfg.N_users
@@ -37,14 +39,18 @@ class SVD(object):
                 shape: [n_users, n_items]
                 type: np.ndarray(np.int32)
         """
+        train_rmse_loss_list = []
+        valid_rmse_loss_list = []
+        accuracy_list = []
+
         # number of train samples
         train_sample_num = train_data[np.nonzero(train_data)].shape[0]
 
         # p, q correspond to user_matrix and item_matrix
         p_mat = np.random.random_sample([self.n_users, self.feature_num])
         q_mat = np.random.random_sample([self.n_items, self.feature_num])
-        p_mat_new = p_mat
-        q_mat_new = q_mat
+        p_mat_new = copy.deepcopy(p_mat)
+        q_mat_new = copy.deepcopy(q_mat)
 
         start = time.time()
         for epoch in range(self.epoch_num):
@@ -52,27 +58,35 @@ class SVD(object):
             for u in range(self.n_users):
                 for i in range(self.n_items):
                     if train_data[u, i] != 0:
-                        e_ui = train_data[u, i] - np.dot(q_mat.T, p_mat)
+                        e_ui = train_data[u, i] - np.dot(q_mat[i, :].T, p_mat[u, :])
                         train_rmse_loss += e_ui**2
                         p_mat_new[u, :] += self.gamma * (e_ui * q_mat[i, :] - self.lamb * p_mat[u, :])
                         q_mat_new[i, :] += self.gamma * (e_ui * p_mat[u, :] - self.lamb * q_mat[i, :])
-                        p_mat[u, :] = p_mat_new[u, :]
-                        q_mat[i, :] = q_mat_new[i, :]
+                        p_mat[u, :] = copy.deepcopy(p_mat_new[u, :])
+                        q_mat[i, :] = copy.deepcopy(q_mat_new[i, :])
             end = time.time()
             train_rmse_loss = np.sqrt(train_rmse_loss / train_sample_num)
 
             if eval_data.any():
                 valid_rmse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat)
-                print_and_log("Epoch {d}: totally training time {:.4f}, training RMSE: {:.4f}, validation RMSE: {:.4f}, accuracy: {:.4f}%"
-                              .format(epoch, end - start, train_rmse_loss, valid_rmse_loss, accuracy * 100))
+                train_rmse_loss_list.append(train_rmse_loss)
+                valid_rmse_loss_list.append(valid_rmse_loss)
+                accuracy_list.append(accuracy)
+
+                print_and_log("Epoch {:d}: totally training time {:.4f}, training RMSE: {:.4f}, validation RMSE: {:.4f}, accuracy: {:.4f}%"
+                              .format(epoch, end - start, train_rmse_loss, valid_rmse_loss, accuracy * 100), self.logger)
+                # print("Epoch {:d}: totally training time {:.4f}, training RMSE: {:.4f}, validation RMSE: {:.4f}, accuracy: {:.4f}%"
+                #       .format(epoch, end - start, train_rmse_loss, valid_rmse_loss, accuracy * 100))
             else:
-                print_and_log("Epoch {d}: totally training time {:.4f}, training RMSE: {:.4f}"
-                              .format(epoch, end - start, train_rmse_loss))
+                print_and_log("Epoch {:d}: totally training time {:.4f}, training RMSE: {:.4f}"
+                              .format(epoch, end - start, train_rmse_loss), self.logger)
 
             # when the train_rmse_loss is less than the threshold, end the training process.
             if self.loss_threshold is not None:
                 if train_rmse_loss < self.loss_threshold:
                     break
+
+        return train_rmse_loss_list, valid_rmse_loss_list, accuracy_list
 
     def trainSGDWithBias(self, train_data, eval_data=None):
         """
@@ -122,16 +136,21 @@ class SVD(object):
 
             if eval_data.any():
                 valid_rmse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat, b_u, b_i, mu)
-                print_and_log("Epoch {d}: totally training time {:.4f}, training RMSE: {:.4f}, validation RMSE: {:.4f}, accuracy: {:.4f}%"
-                              .format(epoch, end - start, train_rmse_loss, valid_rmse_loss, accuracy * 100))
+                train_rmse_loss_list.append(train_rmse_loss)
+                valid_rmse_loss_list.append(valid_rmse_loss)
+                accuracy_list.append(accuracy)
+                print_and_log("Epoch {:d}: totally training time {:.4f}, training RMSE: {:.4f}, validation RMSE: {:.4f}, accuracy: {:.4f}%"
+                              .format(epoch, end - start, train_rmse_loss, valid_rmse_loss, accuracy * 100), self.logger)
             else:
-                print_and_log("Epoch {d}: totally training time {:.4f}, training RMSE: {:.4f}"
-                              .format(epoch, end - start, train_rmse_loss))
+                print_and_log("Epoch {:d}: totally training time {:.4f}, training RMSE: {:.4f}"
+                              .format(epoch, end - start, train_rmse_loss), self.logger)
 
             # when the train_rmse_loss is less than the threshold, end the training process.
             if self.loss_threshold is not None:
                 if train_rmse_loss < self.loss_threshold:
                     break
+
+        return train_rmse_loss_list, valid_rmse_loss_list, accuracy_list
 
     def evaluate(self, train_data, eval_data, p_mat, q_mat, b_u=None, b_i=None, mu=None):
         """
