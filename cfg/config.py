@@ -25,7 +25,7 @@ config.outputs.root_path = './outputs'
 config.exp = edict()
 config.exp.feature_num_list = [2, 4, 8, 16, 32, 64, 128]
 config.exp.dataset_list = ['u1']
-config.exp.algo_list = ['svd', 'svd_bias']
+config.exp.algo_list = ['svd_bias']
 
 config.svd = edict()
 config.svd.gamma = 0.001
