@@ -1,3 +1,4 @@
+from __future__ import __division__
 import math
 import time
 import copy
@@ -140,7 +141,7 @@ class SVD(object):
                 train_rmse_loss_list.append(train_rmse_loss)
                 valid_rmse_loss_list.append(valid_rmse_loss)
                 accuracy_list.append(accuracy)
-                
+
                 print_and_log("Epoch {:d}: totally training time {:.4f}, training RMSE: {:.4f}, validation RMSE: {:.4f}, accuracy: {:.4f}%"
                               .format(epoch, end - start, train_rmse_loss, valid_rmse_loss, accuracy * 100), self.logger)
             else:
@@ -365,6 +366,9 @@ class SVDUpdate(SVD):
         return train_rmse_loss_list, valid_rmse_loss_list, accuracy_list
 
     def computeSocialNetwork(self, train_data):
+        """
+        Generate the social network by computing the Cosine-based Similarity of users.
+        """
         cos_sim = np.zeros([self.n_users, self.n_users])
         normalized_train_data = copy.deepcopy(train_data)
 
@@ -378,3 +382,50 @@ class SVDUpdate(SVD):
                 cos_sim[i, j] = np.dot(rate_i.T, rate_j) / (np.linalg.norm(rate_i) * np.linalg.norm(rate_j))
 
         return cos_sim
+
+    def mapRatingMatrix(train_data):
+        logi_data = copy.deepcopy(train_data)
+        for u in range(self.n_users):
+            for i in range(self.n_items):
+                if logi_data[u, i] != 0:
+                    logi_data[u, i] = (logi_data[u, i] - cfg.rating_min) / (cfg.rating_max - cfg.rating_min)
+
+        return logi_data
+
+    def reverseMapping(data):
+        return (cfg.rating_max - cfg.rating_min) * data + cfg.rating_min
+
+    def predict(self, train_data, p_mat, q_mat):
+        """
+        Predict the whole rating matrix. Here the training data is used to correct the prediction.
+        args:
+            train_data:
+                the training data matrix, only sparse data.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+            p_mat:
+                the user matrix.
+                shape: [n_users, n_features]
+                type: np.ndarray(np.float32)
+            q_mat:
+                the item matrix.
+                shape: [n_items, n_features]
+                type: np.ndarray(np.float32)
+        returns:
+            pred:
+                the prediction of the whole rating matrix.
+                shape: [n_users, n_items]
+                type: np.ndarray(np.int32)
+        """
+        # obtain the prediction
+        pred = np.dot(p_mat, q_mat.T)
+        pred = self.reverseMapping(pred)
+        
+        # fit the prediction to an int variable in [1, 5]
+        pred = np.around(pred).astype(np.int32)
+        pred = np.clip(pred, 1, 5)
+        # for the element already in train_data, set them to the train sample
+        fliter_pred = (train_data == 0)
+        pred = np.multiply(fliter_pred, pred) + train_data
+
+        return pred
