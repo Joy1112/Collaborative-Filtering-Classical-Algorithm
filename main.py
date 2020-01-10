@@ -33,8 +33,9 @@ def main():
                 elif algo == 'svd_bias':
                     model = svd.SVD(feature_num, cfg.svd.gamma, cfg.svd.lamb, cfg.epoch_num, logger=logger)
                     train_rmse, valid_rmse, accuracy = model.trainSGDWithBias(train_data, eval_data)
-                # elif algo == 'nmf':
-                #     model
+                elif algo == 'nmf':
+                    model = nmf.WNMF(feature_num, cfg.epoch_num, logger=logger)
+                    train_rmse, valid_rmse, accuracy = model.train(train_data, eval_data)
 
                 file_prefix = os.path.join(final_output_path, 'dataset_' + str(dataset) + '_' + str(algo) + '_feature_' + str(feature_num))
                 saveData(file_prefix +'_train_rmse.txt', train_rmse)
