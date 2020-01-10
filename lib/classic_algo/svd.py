@@ -47,25 +47,27 @@ class SVD(object):
         train_sample_num = train_data[np.nonzero(train_data)].shape[0]
 
         # p, q correspond to user_matrix and item_matrix
-        p_mat = np.random.random_sample([self.n_users, self.feature_num])
-        q_mat = np.random.random_sample([self.n_items, self.feature_num])
+        # p_mat = np.random.random_sample([self.n_users, self.feature_num])
+        # q_mat = np.random.random_sample([self.n_items, self.feature_num])
+        p_mat = np.random.randn(self.n_users, self.feature_num)
+        q_mat = np.random.randn(self.n_items, self.feature_num)
         p_mat_new = copy.deepcopy(p_mat)
         q_mat_new = copy.deepcopy(q_mat)
 
         start = time.time()
         for epoch in range(self.epoch_num):
-            train_rmse_loss = 0.0
+            error_list = []
             for u in range(self.n_users):
                 for i in range(self.n_items):
                     if train_data[u, i] != 0:
                         e_ui = train_data[u, i] - np.dot(q_mat[i, :].T, p_mat[u, :])
-                        train_rmse_loss += e_ui**2
+                        error_list.append(e_ui)
                         p_mat_new[u, :] += self.gamma * (e_ui * q_mat[i, :] - self.lamb * p_mat[u, :])
                         q_mat_new[i, :] += self.gamma * (e_ui * p_mat[u, :] - self.lamb * q_mat[i, :])
                         p_mat[u, :] = copy.deepcopy(p_mat_new[u, :])
                         q_mat[i, :] = copy.deepcopy(q_mat_new[i, :])
             end = time.time()
-            train_rmse_loss = np.sqrt(train_rmse_loss / train_sample_num)
+            train_rmse_loss = np.sqrt(np.mean(np.array(error_list)**2))
 
             if eval_data.any():
                 valid_rmse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat)
@@ -108,31 +110,33 @@ class SVD(object):
         train_sample_num = train_data[np.nonzero(train_data)].shape[0]
 
         # p, q correspond to user_matrix and item_matrix
-        p_mat = np.random.random_sample([self.n_users, self.feature_num])
-        q_mat = np.random.random_sample([self.n_items, self.feature_num])
-        p_mat_new = p_mat
-        q_mat_new = q_mat
+        # p_mat = np.random.random_sample([self.n_users, self.feature_num])
+        # q_mat = np.random.random_sample([self.n_items, self.feature_num])
+        p_mat = np.random.randn(self.n_users, self.feature_num)
+        q_mat = np.random.randn(self.n_items, self.feature_num)
+        p_mat_new = copy.deepcopy(p_mat)
+        q_mat_new = copy.deepcopy(q_mat)
 
         b_u = np.ones([self.n_users])
         b_i = np.ones([self.n_items])
 
         start = time.time()
         for epoch in range(self.epoch_num):
-            train_rmse_loss = 0.0
+            error_list = []
             for u in range(self.n_users):
                 for i in range(self.n_items):
                     if train_data[u, i] != 0:
                         b_ui = b_u[u] + b_i[i] + mu
                         e_ui = train_data[u, i] - np.dot(q_mat.T, p_mat) - b_ui
-                        train_rmse_loss += e_ui**2
+                        error_list.append(e_ui)
                         p_mat_new[u, :] += self.gamma * (e_ui * q_mat[i, :] - self.lamb * p_mat[u, :])
                         q_mat_new[i, :] += self.gamma * (e_ui * p_mat[u, :] - self.lamb * q_mat[i, :])
-                        p_mat[u, :] = p_mat_new[u, :]
-                        q_mat[i, :] = q_mat_new[i, :]
+                        p_mat[u, :] = copy.deepcopy(p_mat_new[u, :])
+                        q_mat[i, :] = copy.deepcopy(q_mat_new[i, :])
                         b_u[u] += self.gamma * (e_ui - self.lamb * b_u[u])
                         b_i[i] += self.gamma * (e_ui - self.lamb * b_i[i])
             end = time.time()
-            train_rmse_loss = np.sqrt(train_rmse_loss / train_sample_num)
+            train_rmse_loss = np.sqrt(np.mean(np.array(error_list)**2))
 
             if eval_data.any():
                 valid_rmse_loss, accuracy = self.evaluate(train_data, eval_data, p_mat, q_mat, b_u, b_i, mu)
