@@ -32,7 +32,7 @@ def main():
                     train_rmse, valid_rmse, accuracy = model.trainSGD(train_data, eval_data)
                 elif algo == 'svd_bias':
                     model = svd.SVD(feature_num, cfg.svd.gamma, cfg.svd.lamb, cfg.epoch_num, logger=logger)
-                    train_rmse, valid_rmse, accuracy = model.trainSGD(train_data, eval_data)
+                    train_rmse, valid_rmse, accuracy = model.trainSGDWithBias(train_data, eval_data)
                 # elif algo == 'nmf':
                 #     model
 
