@@ -21,12 +21,17 @@ config.outputs = edict()
 config.outputs.root_path = './outputs'
 
 # feature number
-# config.feature_num_list = [2, 4, 8, 16, 32, 64, 128, 256, 512]
 config.exp = edict()
-config.exp.feature_num_list = [2, 4, 8, 16, 32, 64, 128]
 config.exp.dataset_list = ['u1']
-config.exp.algo_list = ['svd_bias']
 
-config.svd = edict()
-config.svd.gamma = 0.001
-config.svd.lamb = 0.1
+# config.exp.feature_num_list = [2, 4, 8, 16, 32, 64, 128]
+config.exp.feature_num_list = [4]
+
+# config.exp.algo_list = ['svd', 'svd_bias', 'nmf']
+config.exp.algo_list = ['nmf']
+
+config.exp.gamma_list = [0.01, 0.005, 0.001]
+# config.exp.gamma_list = [0.005]
+
+# config.exp.lamb_list = [0, 0.1, 1, 3]
+config.exp.lamb_list = [0.1]

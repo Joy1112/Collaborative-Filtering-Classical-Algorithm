@@ -1,4 +1,4 @@
-from __future__ import __division__
+from __future__ import division
 import math
 import time
 import copy
